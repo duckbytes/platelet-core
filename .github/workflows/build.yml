@@ -1,0 +1,38 @@
+name: Build platelet core npm package
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - run: npm ci
+      - run: npm run build
+
+      - run: npm version patch
+      - run: git config --global user.email "your-email@example.com"
+      - run: git config --global user.name "Your Name"
+      - run: git add package.json package-lock.json
+      - run: git commit -m "Release v$(cat package.json | jq -r .version)"
+
+      - run: git tag -a "v$(cat package.json | jq -r .version)" -m "Release v$(cat package.json | jq -r .version)"
+      - run: git push origin --tags
+
+      - run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: generated-types
+          path: dist
